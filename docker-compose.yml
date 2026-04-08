@@ -1,0 +1,63 @@
+services:
+  postgres_db:
+    image: postgres:16
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: cqrs_netflix_clone
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis_db:
+    image: redis:latest
+    container_name: redis_db
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  api_container:
+    build: .
+    container_name: api_container
+    command: pnpm run api
+    ports:  
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:password@postgres_db:5432/cqrs_netflix_clone
+      REDIS_URL: redis://redis_db:6379
+      STORAGE_PATH: /storage
+      REDIS_HOST: redis_db
+    volumes:
+      - ./storage:/storage
+    depends_on:
+      - postgres_db
+      - redis_db
+  worker_container:
+    build: .
+    container_name: worker_container
+    command: pnpm run worker
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres_db:5432/cqrs_netflix_clone
+      REDIS_URL: redis://redis_db:6379
+      STORAGE_PATH: /storage
+      REDIS_HOST: redis_db
+    volumes:
+      - ./storage:/storage
+    depends_on:
+      - redis_db
+
+  subscriber_container:
+    build: .
+    container_name: subscriber_container
+    command: pnpm run subscriber
+    environment:
+      REDIS_HOST: redis_db
+    depends_on:
+      - redis_db
+volumes:
+  postgres_data:
+  redis_data:
