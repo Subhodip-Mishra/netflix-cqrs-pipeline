@@ -23,8 +23,6 @@ services:
     build: .
     container_name: api_container
     command: pnpm run api
-    ports:  
-      - "3000:3000"
     environment:
       PORT: 3000
       DATABASE_URL: postgresql://postgres:password@postgres_db:5432/cqrs_netflix_clone
@@ -58,6 +56,18 @@ services:
       REDIS_HOST: redis_db
     depends_on:
       - redis_db
+
+  nginx: 
+    image: nginx:latest
+    container_name: nginx_container
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./storage:/storage:ro
+    depends_on:
+      - api_container
+
 volumes:
   postgres_data:
   redis_data:
